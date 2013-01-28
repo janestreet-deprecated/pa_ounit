@@ -53,7 +53,7 @@ let chop_extension fn =
 let module_name_of_file fn =
   String.capitalize (chop_extension (Filename.basename fn))
 
-let rec add_in_sig to_add = function
+let add_in_sig to_add = function
   | <:module_type@loc< sig $si$ end >> ->
     <:module_type@loc< sig $si$; $to_add$ end >>
   | Ast.MtNil loc ->
