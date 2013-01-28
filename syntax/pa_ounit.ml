@@ -1,3 +1,9 @@
+(* Generated code should depend on the environment in scope as little as
+   possible.  E.g. rather than [foo = []] do [match foo with [] ->], to eliminate the
+   use of [=].  It is especially important to not use polymorphic comparisons, since we
+   are moving more and more to code that doesn't have them in scope. *)
+
+
 open Camlp4.PreCast
 
 (**
@@ -17,28 +23,53 @@ open Camlp4.PreCast
    TODO: think about how to make the fold cheaper.
 *)
 
-(** Used to lazily initialise the Random number generator *)
-let init = ref false
+(* this is used as a way to generate fresh identifiers deterministically even in the
+   presence of separate compilation. It is the responsability of whoever sets this option
+   to make sure that the given identifiers are actually unique in a given program *)
+let module_ = ref None
+let () =
+  (* Beware that camlp4 has a broken command line parser and using the flag
+     -ounit-ident will not work, because camlp4 will interpret that as
+     -o unit-ident and so the standard output of your preprocessor will be empty.
+     Of course, there is no special case for -o, it is also a problem with any other
+     flag. And of course you have no warning whatsoever. *)
+  Camlp4.Options.add "-pa-ounit-ident" (Arg.String (fun s -> module_ := Some s))
+  "A base name to use for generated identifiers (has to be globally unique in a program)."
 
 (** This is an optimisation: this variable tells us whether the file we
     processed contained any tests. This is useful to avoid paying the full cost
     of a fold when the processed file does not contain any tests. *)
 let has_tests = ref false
 
-let uid s =
-  if not !init then begin
-    Random.self_init ();
-    init := true
-  end;
-  Printf.sprintf "__Pa_ounit_%s_%i" s (Random.bits ())
+module Uid : sig
+  val of_loc : suffix:string -> Loc.t -> string
+  val breadcrumb_id : string
+end = struct
 
-let breadcrumb_id =
-  lazy (uid "internal")
+  let make_string str cnt =
+    Printf.sprintf "__Pa_ounit_%s_%d" str cnt
+
+  let start = 0
+
+  let of_loc =
+    let r = ref start in
+    fun ~suffix loc ->
+      incr r;
+      let filename =
+        match !module_ with
+        | None -> Loc.file_name loc
+        | Some name -> name in
+      let str = Digest.to_hex (Digest.string filename) in
+      make_string (str ^ suffix) !r
+
+  let breadcrumb_id = make_string "internal" start
+
+end
 
 let breadcrumb exp =
   let loc = Ast.loc_of_expr exp in
   Ast.StExp (loc,Ast.ExApp
-    (loc,Ast.ExId(loc,Ast.IdLid (loc,Lazy.force breadcrumb_id)),exp))
+    (loc,Ast.ExId(loc,Ast.IdLid (loc, Uid.breadcrumb_id)),exp))
 
 let label name e=
   let loc = Ast.loc_of_expr e in
@@ -75,11 +106,7 @@ let append_to_list ~list e =
   | Some v -> list, <:str_item@loc< value $lid:v$ () :  list OUnit.test =
       [ $e$ :: $lid:v$ () ];  >>
   | None ->
-    let bname = String.lowercase
-      (chop_extension (Filename.basename (Loc.file_name loc)))
-    in
-    (* TODO: use a uuid *)
-    let id = uid (bname^"_test_list") in
+    let id = Uid.of_loc ~suffix:"_test_list" loc in
     Some id,<:str_item@loc< value $lid:id$ () : list OUnit.test = [ $e$ ];  >>
 
 (* We use the ast mapper to reach all the deep nested modules that might
@@ -91,7 +118,7 @@ let ast_mapper = object (self)
   method str_item' ~list = function
   (* Bread crumb *)
   | Ast.StExp (_,Ast.ExApp
-    (_,Ast.ExId(_,Ast.IdLid (_,fid)),e)) when fid = Lazy.force breadcrumb_id ->
+    (_,Ast.ExId(_,Ast.IdLid (_,fid)),e)) when fid = Uid.breadcrumb_id ->
     append_to_list ~list e
   | <:str_item@loc< $s1$;$s2$ >> ->
     let list,s1 = self#str_item' ~list s1 in

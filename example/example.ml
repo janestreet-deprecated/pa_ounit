@@ -8,14 +8,14 @@ end
 
 module type Cnt = sig
   type t
-  val incr : unit -> t
+  val _incr : unit -> t
 end
 
 module Cnt(V:S) : Cnt with type t = V.t = struct
   type t = V.t
   let p = ref V.zero
 
-  let incr () =
+  let _incr () =
     p := V.succ !p;
     !p
 
