@@ -1,0 +1,10 @@
+# OASIS_START
+# DO NOT EDIT (digest: 73236478094446942f8d889878757a90)
+version = "108.00.01"
+description = "Syntax extension writing inline tests"
+requires = "camlp4 type_conv oUnit"
+archive(syntax, preprocessor) = "pa_ounit.cma"
+archive(syntax, toploop) = "pa_ounit.cma"
+exists_if = "pa_ounit.cma"
+# OASIS_STOP
+
