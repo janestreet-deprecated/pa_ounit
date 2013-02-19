@@ -19,10 +19,12 @@ module Cnt(V:S) : Cnt with type t = V.t = struct
     p := V.succ !p;
     !p
 
-  TEST  = (V.succ V.zero > V.zero);;
+  TEST = (V.succ V.zero > V.zero);;
 end
 
+module C1 = Cnt(Int)
 TEST_MODULE = Cnt(Int)
+TEST_MODULE "description" = Cnt(Int)
 
 TEST_MODULE = struct
   open List
