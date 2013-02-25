@@ -1,0 +1,28 @@
+pa_ounit_test.ml:l1 <<false>> is false.
+
+pa_ounit_test.ml:l2 <<raise Exit>> threw Pervasives.Exit.
+  Raised at file "pa_ounit_test.ml", line 2, characters 13-17
+  Called from file "runtime.ml", line XXX, characters XXX-XXX
+
+pa_ounit_test.ml:l4 <<false>> is false.
+  in TEST_MODULE at pa_ounit_test.ml:l3:name
+
+pa_ounit_test.ml:l5 <<false>> is false.
+  in TEST_MODULE at pa_ounit_test.ml:l3:name
+
+pa_ounit_test.ml:l6 <<raise Exit>> threw Pervasives.Exit.
+  Raised at file "pa_ounit_test.ml", line 6, characters 15-19
+  Called from file "runtime.ml", line XXX, characters XXX-XXX
+  in TEST_MODULE at pa_ounit_test.ml:l3:name
+
+TEST_MODULE threw Pervasives.Exit.
+  Raised at file "pa_ounit_test.ml", line 8, characters 19-23
+  Called from file "runtime.ml", line XXX, characters XXX-XXX
+  Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
+  in TEST_MODULE at pa_ounit_test.ml:l3:name
+
+TEST_MODULE threw Pervasives.Exit.
+  Raised at file "pa_ounit_test.ml", line 12, characters 17-21
+  Called from file "runtime.ml", line XXX, characters XXX-XXX
+  Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
+
