@@ -30,7 +30,6 @@ Library pa_ounit_syntax
   FindlibParent:      pa_ounit_lib
   BuildDepends:       camlp4.lib,
                       camlp4.quotations
-  CompiledObject:     byte
   XMETAType:          syntax
   XMETARequires:      camlp4
   XMETADescription:   Syntax extension writing inline tests
