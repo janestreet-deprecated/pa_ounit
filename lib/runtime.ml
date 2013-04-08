@@ -1,3 +1,11 @@
+let parse_argv argv l f msg =
+  try
+    Arg.parse_argv argv l f msg
+  with
+  | Arg.Bad msg -> Printf.eprintf "%s" msg; exit 2
+  | Arg.Help msg -> Printf.printf "%s" msg; exit 0
+;;
+
 type descr = string
 let test_modules_ran = ref 0
 let test_modules_failed = ref 0
@@ -6,45 +14,95 @@ let tests_failed = ref 0
 let dynamic_lib : string option ref = ref None
 type filename = string
 type line_number = int
+type start_pos = int
+type end_pos = int
 let action : [
 | `Ignore
 | `Run_lib of string * (filename * line_number option * bool ref) list
 | `Collect of OUnit.test list ref
 ] ref = ref `Ignore
 let module_descr = ref []
+let verbose = ref false
 let strict = ref false
-let display = ref false
+let show_counts = ref false
+let list_test_names = ref false
+let delayed_errors = ref []
+
 let log = ref None
+
+let displayed_descr descr filename line start_pos end_pos =
+  Printf.sprintf "File %S, line %d, characters %d-%d%s"
+    filename line start_pos end_pos descr
+let parse_descr str =
+  try Some (Scanf.sscanf str " File %S , line %d , characters %d - %d %!"
+              (fun file line _start_pos _end_pos -> file, Some line))
+  with _ ->
+    try Some (Scanf.sscanf str " File %S , line %d %!" (fun file line -> file, Some line))
+    with _ ->
+      try Some (Scanf.sscanf str " File %S %!" (fun file -> file, None))
+      with _ -> None
+
+let indent ~by str =
+  let len = String.length str in
+  let buf = Buffer.create (len * 2) in
+  let indentation = String.make by ' ' in
+  Buffer.add_string buf indentation;
+  for i = 0 to len - 1; do
+    Buffer.add_char buf str.[i];
+    if str.[i] = '\n' && i <> len - 1 then Buffer.add_string buf indentation
+  done;
+  Buffer.contents buf
+
+let backtrace_indented ~by =
+  let str = Printexc.get_backtrace () in
+  indent str ~by
 
 let () =
   match Array.to_list Sys.argv with
   | name :: "inline-test-runner" :: lib :: rest -> begin
     (* when we see this argument, we switch to test mode *)
     let tests = ref [] in
-    Arg.parse_argv (Array.of_list (name :: rest)) [
+    parse_argv (Array.of_list (name :: rest)) (Arg.align [
+      "-list-test-names", Arg.Unit (fun () -> list_test_names := true; verbose := true),
+        " Do not run tests but show what would have been run";
+      "-verbose", Arg.Set verbose, " Show the tests as they run";
       "-strict", Arg.Set strict, " End with an error if no tests were run";
-      "-display", Arg.Set display, " Show the number of tests ran";
+      "-show-counts", Arg.Set show_counts, " Show the number of tests ran";
       "-log", Arg.Unit (fun () ->
         (try Sys.remove "inline_tests.log" with _ -> ());
         log := Some (open_out "inline_tests.log")
-      ), " Log the tests run";
+      ), " Log the tests run in inline_tests.log";
       "-only-test", Arg.String (fun s ->
-        try
         let filename, index =
-          if String.contains s ':' then
-            let i = String.index s ':' in
-            let filename = String.sub s 0 i in
-            let index = int_of_string (String.sub s (i + 1) (String.length s - i - 1)) in
-            filename, Some index
+          match parse_descr s with
+          | Some (file, index) -> file, index
+          | None ->
+            if String.contains s ':' then
+              let i = String.index s ':' in
+              let filename = String.sub s 0 i in
+              let index_string = String.sub s (i + 1) (String.length s - i - 1) in
+              let index =
+                try int_of_string index_string
+                with Failure _ ->
+                  Printf.eprintf
+                    "Argument %s doesn't fit the format filename[:line_number]\n%!" s;
+                  exit 1
+              in
+              filename, Some index
           else
             s, None
         in
         tests := (filename, index, ref false) :: !tests
-        with Invalid_argument _ | Failure _ ->
-          failwith (Printf.sprintf " Argument %s doesn't fit the format filename[:line_number]" s)
-        ), " Run only the tests specified by all the -only-test options";
-    ] (fun anon ->
-      failwith (Printf.sprintf "Unexpected anonymous argument %s" anon)
+      ), "location Run only the tests specified by all the -only-test options.
+                      Locations can be one of these forms:
+                      - file.ml
+                      - file.ml:line_number
+                      - File \"file.ml\"
+                      - File \"file.ml\", line 23
+                      - File \"file.ml\", line 23, characters 2-3";
+    ]) (fun anon ->
+      Printf.eprintf "%s: unexpected anonymous argument %s\n%!" name anon;
+      exit 1
     ) (Printf.sprintf "%s %s %s [args]" name "inline-test-runner" lib);
     action := `Run_lib (lib, !tests)
     end
@@ -63,7 +121,8 @@ let with_descr (descr : descr) f =
 
 let string_of_module_descr () =
   String.concat "" (
-    List.map (fun s -> "  in TES" ^ "T_MODULE at " ^ s ^ "\n") !module_descr
+    List.map (fun s -> "  in TES" ^ "T_MODULE at " ^ String.uncapitalize s ^ "\n")
+      !module_descr
   )
 
 let position_match def_filename def_line_number l =
@@ -86,7 +145,14 @@ let position_match def_filename def_line_number l =
     found
   ) l
 
-let test (descr : descr) def_filename def_line_number f =
+let eprintf_or_delay fmt =
+  Printf.ksprintf (fun s ->
+    if !verbose then delayed_errors := s :: !delayed_errors
+    else Printf.eprintf "%s%!" s
+  ) fmt
+
+let test (descr : descr) def_filename def_line_number start_pos end_pos f =
+  let descr = displayed_descr descr def_filename def_line_number start_pos end_pos in
   match !action with
   | `Run_lib (lib, l) ->
     let should_run =
@@ -101,16 +167,19 @@ let test (descr : descr) def_filename def_line_number f =
       | None -> ()
       | Some ch -> Printf.fprintf ch "%s\n%s" descr (string_of_module_descr ())
       end;
+      if !verbose then begin
+        Printf.printf "%s\n%!" descr
+      end;
       try
-        if not (f ()) then begin
+        if not !list_test_names && not (f ()) then begin
           incr tests_failed;
-          Printf.eprintf "%s is false.\n%s" descr
+          eprintf_or_delay "%s is false.\n%s\n%!" descr
             (string_of_module_descr ())
         end
       with exn ->
-        let backtrace = Printexc.get_backtrace () in
+        let backtrace = backtrace_indented ~by:2 in
         incr tests_failed;
-        Printf.eprintf "%s threw %s.\n%s%s" descr (Printexc.to_string exn)
+        eprintf_or_delay "%s threw %s.\n%s%s\n%!" descr (Printexc.to_string exn)
           backtrace (string_of_module_descr ())
     end
   | `Ignore -> ()
@@ -137,8 +206,8 @@ let unset_lib static_lib =
   | Some lib ->
     if lib = static_lib then dynamic_lib := None
 
-let test_unit descr def_filename def_line_number f =
-  test descr def_filename def_line_number (fun () -> f (); true)
+let test_unit descr def_filename def_line_number start_pos end_pos f =
+  test descr def_filename def_line_number start_pos end_pos (fun () -> f (); true)
 
 let collect f =
   let prev_action = !action in
@@ -153,7 +222,8 @@ let collect f =
     action := prev_action;
     raise e
 
-let test_module descr _def_filename _def_line_number f =
+let test_module descr def_filename def_line_number start_pos end_pos f =
+  let descr = displayed_descr descr def_filename def_line_number start_pos end_pos in
   match !action with
   | `Run_lib (lib, _) ->
     (* run test_modules, in case they define the test we are looking for (if we are
@@ -163,9 +233,9 @@ let test_module descr _def_filename _def_line_number f =
       try
         with_descr descr f
       with exn ->
-        let backtrace = Printexc.get_backtrace () in
+        let backtrace = backtrace_indented ~by:2 in
         incr test_modules_failed;
-        Printf.eprintf ("TES" ^^ "T_MODULE threw %s.\n%s%s") (Printexc.to_string exn)
+        eprintf_or_delay ("TES" ^^ "T_MODULE threw %s.\n%s%s\n%!") (Printexc.to_string exn)
           backtrace (string_of_module_descr ())
     end
   | `Ignore -> ()
@@ -176,14 +246,36 @@ let test_module descr _def_filename _def_line_number f =
     ) :: !r
 
 let summarize () =
+  begin match !action with
+  | `Ignore ->
+    if Sys.argv <> [||] && Filename.basename Sys.argv.(0) = "inline_tests_runner.exe" then
+      Printf.eprintf "inline_tests_runner.exe is not supposed to be run by hand, you \n\
+                      should run the inline_tests_runner script instead.\n%!"
+    else
+      Printf.eprintf "You are doing something unexpected with the tests. No tests have \n\
+                      been run. You should use the inline_tests_runner script to run \n\
+                      tests.\n%!";
+    exit 1
+  | `Run_lib _
+  | `Collect _ -> ()
+  end;
   begin match !log with
   | None -> ()
   | Some ch -> close_out ch
   end;
+  begin
+    match List.rev !delayed_errors with
+    | [] -> ()
+    | _ :: _ as delayed_errors ->
+      Printf.eprintf "\n%s\n%!" (String.make 70 '=');
+      List.iter (fun message ->
+        Printf.eprintf "%s%!" message
+      ) delayed_errors
+  end;
   match !tests_failed, !test_modules_failed with
   | 0, 0 -> begin
-    if !display then begin
-      Printf.eprintf "%d tests ran, %d test_modules ran\n" !tests_ran !test_modules_ran
+    if !show_counts then begin
+      Printf.eprintf "%d tests ran, %d test_modules ran\n%!" !tests_ran !test_modules_ran
     end;
     let errors =
       match !action with
@@ -204,16 +296,16 @@ let summarize () =
         | None -> Printf.eprintf " %s" filename
         | Some line_number -> Printf.eprintf " %s:%d" filename line_number
       ) tests;
-      Printf.eprintf ".\n";
+      Printf.eprintf ".\n%!";
       exit 1
     | None ->
       if !tests_ran = 0 && !strict then begin
-        Printf.eprintf "Pa_ounit error: no tests have been run.\n";
+        Printf.eprintf "Pa_ounit error: no tests have been run.\n%!";
         exit 1
       end;
       exit 0
   end
   | count, count_test_modules ->
-    Printf.eprintf "FAILED %d / %d tests%s\n" count !tests_ran
+    Printf.eprintf "FAILED %d / %d tests%s\n%!" count !tests_ran
       (if count_test_modules = 0 then "" else Printf.sprintf (", %d TES" ^^ "T_MODULES") count_test_modules);
     exit 2

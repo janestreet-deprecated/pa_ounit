@@ -1,12 +1,21 @@
 % Pa_ounit
 
-Pa_ounit is a syntax extension that helps writing in-line test in ocaml
-code. It allows user to register tests with a new `TEST` top-level expressions
-and automatically collects all the tests in a module (in a function
-`ounit_tests` of type `unit -> OUnit.test`).
+Pa\_ounit is a syntax extension that helps writing in-line tests in ocaml code.
 
-Basic case
-----------
+New syntactic constructs
+------------------------
+The following constructs are now valid structure items:
+
+    TEST name? = <boolean expr> (* true means ok, false or exn means broken *)
+    TEST_UNIT name? = <unit expr> (* () means ok, exn means broken *)
+    TEST_MODULE name? = <module expr> (* to group TESTs (to share some setup for instance) *)
+
+Contrary to the previous version of pa_ounit, if the tests are executed, they will be
+executed when the control flow reaches the structure item (ie at toplevel for a toplevel
+TEST, when the functor is applied for a TEST defined in the body of a functor, etc.).
+
+Examples
+--------
 
 ###prime.ml
 
@@ -17,55 +26,76 @@ Basic case
     TEST = not (is_prime 1)
     TEST = not (is_prime 8)
 
-###OMakefile
-
-    ....
-    OCamlMakePPDeps(pa_ounit,prime)
-    ExtractOunitTests(prime)
-    ....
-
-This creates a small program `extracted_test_runner.exe` in the same directory
-as `prime.ml`.
-
-Using modules and functors
---------------------------
-
-Any test that you add in a submodule declared directly (i.e. using `module .. = struct
-.. end`) will be automatically registered in the parent module. Tests in other
-modules will need to be manually registered using `TEST_MODULE`.
 
 ###tests in a functor.
 
-    module Make(C:S) = struct
+    module Make(C : S) = struct
          <magic>
          TEST = <some expression>
     end
 
-    TEST_MODULE=Make(Int)
+    module M = Make(Int)
 
 ###grouping test and side-effecting initialisation.
 
 Since the module passed as an argument to `TEST_MODULE` is only initialised when
 we run the tests. It is therefore ok to perform side-effects in a `TEST_MODULE`
 
-    TEST_MODULE=struct
+    TEST_MODULE = struct
         module UID = Uniq_id.Int(struct end)
 
         TEST = UID.create() <> UID.create()
     end
 
-###"piercing" through the signature
+Building and running the tests at jane street
+--------------------------------
 
-When a module contains `TEST` or `TEST_MODULE` the function `ounit_test` is
-exported even if the module has a signature that would hide it. Note that this
-not apply to modules that do not directly contain a `TEST` or `TEST_MODULE`
-statement or to modules that are packed as first class values (e.g. a module
-including a module that containing a `TEST` statement).
+Look at `http://docs/programming/omake.html`.
 
-Grammar
-========
-The `TEST` and `TEST_MODULE` directive can optionally take a name otherwise the
-name of the test is inferred based on the file name and the position in the file.
+Building and running the tests outside of jane street
+----------------------------------------
 
-    | TEST <quoted string>? = <boolean expr>
-    | TEST_MODULE <quoted string>? = <module with ounit_tests>
+Code using this extension must be compiled and linked using the pa\_ounit\_lib
+library. The pa_ounit syntax extension can take a `-pa-ounit-lib libname` flag (which
+defaults to `dummy`).
+
+Tests are executed when the executable containing the tests is called with command line
+arguments:
+
+    your.exe inline-test-runner libname [options]
+
+otherwise they are ignored.
+
+This `libname` is a way of restricting the tests run by the executable. The dependencies
+of your library (or executable) could also use `pa_ounit`, but you don't necessarily want
+to run their tests too. For instance, `core` is built by giving `-pa-ounit-lib core` to
+camlp4, and `core_extended` is built by giving `-pa-ounit-lib core_extended` to
+camlp4. And now when an executable linked with both `core` and `core_extended` is run with
+a `libname` of `core_extended`, only the tests of `core_extended` are run.
+
+Finally, after running tests, `Pa_ounit_lib.Runtime.summarize ()` should be called (to
+exit with an error and a summary of the number of failed tests if there were errors or
+exit normally otherwise).
+
+Command line arguments
+----------------------
+The executable that runs tests can take additional command line arguments. The most useful
+of these are:
+
+*   -verbose
+
+    to see the tests as they run
+
+*    -only-test location
+
+     where location is either a filename [-only-test main.ml], a filename
+     with a line number [-only-test main.ml:32], or with the syntax that the
+     compiler uses: [File "main.ml"], or [File "main.ml", line 32] or [File "main.ml",
+     line 32, characters 2-6] (characters are ignored).
+     The position that matters is the position of the TEST or TEST\_UNIT or
+     TEST\_MODULE construct. The positions shown by `-verbose` are valid
+     inputs for `-only-test`.
+
+     If no [-only-test] flag is given, all the tests are
+     run. Otherwise all the tests matching any of the locations are run.
+

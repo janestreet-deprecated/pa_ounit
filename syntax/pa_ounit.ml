@@ -54,35 +54,37 @@ let rec short_desc_of_expr ~max_len = function
 let descr _loc e_opt id_opt =
   let filename = Loc.file_name _loc in
   let line = Loc.start_line _loc in
+  let start_pos = Loc.start_off _loc - Loc.start_bol _loc in
+  let end_pos = Loc.stop_off _loc - Loc.start_bol _loc in
   let descr =
     match id_opt, e_opt with
     | None, None -> ""
-    | None, Some e -> " <<" ^ String.escaped (short_desc_of_expr ~max_len:50 e) ^ ">>"
-    | Some id, _ -> ":" ^ id in
-  let str = Printf.sprintf "%s:l%d%s" filename line descr in
-   <:expr< $str:str$ >>,
+    | None, Some e -> ": <<" ^ String.escaped (short_desc_of_expr ~max_len:50 e) ^ ">>"
+    | Some id, _ -> ": " ^ id in
+   <:expr< $str:descr$ >>,
    <:expr< $str:filename$ >>,
-   <:expr< $int:string_of_int line$ >>
+   <:expr< $int:string_of_int line$ >>,
+   <:expr< $int:string_of_int start_pos$ >>,
+   <:expr< $int:string_of_int end_pos$ >>
+
+let apply_to_descr lid _loc e_opt id_opt more_arg =
+  let descr, filename, line, start_pos, end_pos = descr _loc e_opt id_opt in
+  <:str_item<
+    value () =
+      Pa_ounit_lib.Runtime.$lid:lid$ $descr$ $filename$ $line$ $start_pos$ $end_pos$
+        $more_arg$;
+  >>
 
 EXTEND Gram
   GLOBAL: Syntax.str_item;
   Syntax.str_item:
     [[
       "TEST"; id = OPT Syntax.a_STRING; "=" ; e = Syntax.expr ->
-      let descr, filename, line = descr _loc (Some e) id in
-      <:str_item<
-        value () = Pa_ounit_lib.Runtime.test $descr$ $filename$ $line$ (fun () -> $e$);
-      >>
+      apply_to_descr "test" _loc (Some e) id <:expr< fun () -> $e$ >>
     | "TEST_UNIT"; id = OPT Syntax.a_STRING; "=" ; e = Syntax.expr ->
-      let descr, filename, line = descr _loc (Some e) id in
-      <:str_item<
-        value () = Pa_ounit_lib.Runtime.test_unit $descr$ $filename$ $line$ (fun () -> $e$);
-      >>
+      apply_to_descr "test_unit" _loc (Some e) id <:expr< fun () -> $e$ >>
     | "TEST_MODULE"; id = OPT Syntax.a_STRING ; "=" ; expr = Syntax.module_expr ->
-      let descr, filename, line = descr _loc None id in
-      <:str_item<
-        value () = Pa_ounit_lib.Runtime.test_module $descr$ $filename$ $line$ (fun () -> let module M = $expr$ in ());
-      >>
+      apply_to_descr "test_module" _loc None id <:expr< fun () -> let module M = $expr$ in () >>
     ]];
 END
 

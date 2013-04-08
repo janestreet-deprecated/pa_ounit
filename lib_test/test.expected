@@ -1,25 +1,25 @@
-pa_ounit_test.ml:l1 <<false>> is false.
+File "pa_ounit_test.ml", line 1, characters 0-12: <<false>> is false.
 
-pa_ounit_test.ml:l2 <<raise Exit>> threw Pervasives.Exit.
+File "pa_ounit_test.ml", line 2, characters 0-17: <<raise Exit>> threw Pervasives.Exit.
   Raised at file "pa_ounit_test.ml", line 2, characters 13-17
   Called from file "runtime.ml", line XXX, characters XXX-XXX
 
-pa_ounit_test.ml:l4 <<false>> is false.
-  in TEST_MODULE at pa_ounit_test.ml:l3:name
+File "pa_ounit_test.ml", line 4, characters 2-14: <<false>> is false.
+  in TEST_MODULE at file "pa_ounit_test.ml", line 3, characters 0-134: name
 
-pa_ounit_test.ml:l5 <<false>> is false.
-  in TEST_MODULE at pa_ounit_test.ml:l3:name
+File "pa_ounit_test.ml", line 5, characters 2-14: <<false>> is false.
+  in TEST_MODULE at file "pa_ounit_test.ml", line 3, characters 0-134: name
 
-pa_ounit_test.ml:l6 <<raise Exit>> threw Pervasives.Exit.
+File "pa_ounit_test.ml", line 6, characters 2-19: <<raise Exit>> threw Pervasives.Exit.
   Raised at file "pa_ounit_test.ml", line 6, characters 15-19
   Called from file "runtime.ml", line XXX, characters XXX-XXX
-  in TEST_MODULE at pa_ounit_test.ml:l3:name
+  in TEST_MODULE at file "pa_ounit_test.ml", line 3, characters 0-134: name
 
 TEST_MODULE threw Pervasives.Exit.
   Raised at file "pa_ounit_test.ml", line 8, characters 19-23
   Called from file "runtime.ml", line XXX, characters XXX-XXX
   Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
-  in TEST_MODULE at pa_ounit_test.ml:l3:name
+  in TEST_MODULE at file "pa_ounit_test.ml", line 3, characters 0-134: name
 
 TEST_MODULE threw Pervasives.Exit.
   Raised at file "pa_ounit_test.ml", line 12, characters 17-21
