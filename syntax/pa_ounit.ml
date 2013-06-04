@@ -26,7 +26,7 @@ let module_ident () =
 
 let syntax_printer =
   let module PP = Camlp4.Printers.OCaml.Make (Syntax) in
-  new PP.printer ()
+  new PP.printer ~comments:false ()
 
 let string_of_expr expr =
   let buffer = Buffer.create 16 in
