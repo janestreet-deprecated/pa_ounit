@@ -179,7 +179,9 @@ let test (descr : descr) def_filename def_line_number start_pos end_pos f =
       with exn ->
         let backtrace = backtrace_indented ~by:2 in
         incr tests_failed;
-        eprintf_or_delay "%s threw %s.\n%s%s\n%!" descr (Printexc.to_string exn)
+        let exn_str = Printexc.to_string exn in
+        let sep = if String.contains exn_str '\n' then "\n" else " " in
+        eprintf_or_delay "%s threw%s%s.\n%s%s\n%!" descr sep exn_str
           backtrace (string_of_module_descr ())
     end
   | `Ignore -> ()
@@ -193,7 +195,7 @@ let set_lib static_lib =
   match !dynamic_lib with
   | None -> dynamic_lib := Some static_lib
   | Some _ -> ()
-    (* possible if the interface is used explicitely or if we happen to dynlink something
+    (* possible if the interface is used explicitly or if we happen to dynlink something
        that contain tests *)
 
 let unset_lib static_lib =
@@ -235,7 +237,9 @@ let test_module descr def_filename def_line_number start_pos end_pos f =
       with exn ->
         let backtrace = backtrace_indented ~by:2 in
         incr test_modules_failed;
-        eprintf_or_delay ("TES" ^^ "T_MODULE threw %s.\n%s%s\n%!") (Printexc.to_string exn)
+        let exn_str = Printexc.to_string exn in
+        let sep = if String.contains exn_str '\n' then "\n" else " " in
+        eprintf_or_delay ("TES" ^^ "T_MODULE threw%s%s.\n%s%s\n%!") sep exn_str
           backtrace (string_of_module_descr ())
     end
   | `Ignore -> ()
