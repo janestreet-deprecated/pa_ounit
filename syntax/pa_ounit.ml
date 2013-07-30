@@ -21,9 +21,6 @@ let libname () =
   | None -> "dummy" (* would break for the external tree if I gave an error, I think *)
   | Some name -> name
 
-let module_ident () =
-  "__pa_ounit_" ^ Digest.to_hex (Digest.string (libname ()))
-
 let syntax_printer =
   let module PP = Camlp4.Printers.OCaml.Make (Syntax) in
   new PP.printer ~comments:false ()
@@ -93,9 +90,8 @@ let () =
   Camlp4.Register.register_str_item_parser (fun ?directive_handler _loc stream ->
     let ml = current_str_parser ?directive_handler _loc stream in
     <:str_item<
-      value $lid:module_ident ()$ = $str:libname ()$;
-      value () = Pa_ounit_lib.Runtime.set_lib $lid:module_ident ()$;
+      value () = Pa_ounit_lib.Runtime.set_lib $str:libname ()$;
       $ml$;
-      value () = Pa_ounit_lib.Runtime.unset_lib $lid:module_ident ()$;
+      value () = Pa_ounit_lib.Runtime.unset_lib $str:libname ()$;
     >>
   )
