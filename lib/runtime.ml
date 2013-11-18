@@ -27,6 +27,7 @@ let strict = ref false
 let show_counts = ref false
 let list_test_names = ref false
 let delayed_errors = ref []
+let stop_on_error = ref false
 
 let log = ref None
 
@@ -66,6 +67,7 @@ let () =
       "-list-test-names", Arg.Unit (fun () -> list_test_names := true; verbose := true),
         " Do not run tests but show what would have been run";
       "-verbose", Arg.Set verbose, " Show the tests as they run";
+      "-stop-on-error", Arg.Set stop_on_error, " Run tests only up to the first error";
       "-strict", Arg.Set strict, " End with an error if no tests were run";
       "-show-counts", Arg.Set show_counts, " Show the number of tests ran";
       "-log", Arg.Unit (fun () ->
@@ -145,10 +147,23 @@ let position_match def_filename def_line_number l =
     found
   ) l
 
+let print_delayed_errors () =
+  match List.rev !delayed_errors with
+  | [] -> ()
+  | _ :: _ as delayed_errors ->
+    Printf.eprintf "\n%s\n%!" (String.make 70 '=');
+    List.iter (fun message ->
+      Printf.eprintf "%s%!" message
+    ) delayed_errors
+
 let eprintf_or_delay fmt =
   Printf.ksprintf (fun s ->
     if !verbose then delayed_errors := s :: !delayed_errors
-    else Printf.eprintf "%s%!" s
+    else Printf.eprintf "%s%!" s;
+    if !stop_on_error then begin
+      print_delayed_errors ();
+      exit 2
+    end
   ) fmt
 
 let test (descr : descr) def_filename def_line_number start_pos end_pos f =
@@ -267,15 +282,7 @@ let summarize () =
   | None -> ()
   | Some ch -> close_out ch
   end;
-  begin
-    match List.rev !delayed_errors with
-    | [] -> ()
-    | _ :: _ as delayed_errors ->
-      Printf.eprintf "\n%s\n%!" (String.make 70 '=');
-      List.iter (fun message ->
-        Printf.eprintf "%s%!" message
-      ) delayed_errors
-  end;
+  print_delayed_errors ();
   match !tests_failed, !test_modules_failed with
   | 0, 0 -> begin
     if !show_counts then begin
