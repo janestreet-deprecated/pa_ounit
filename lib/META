@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: 73c68d3134a0b8d04b8db7c7dfbfa9cf)
-version = "109.53.01"
+# DO NOT EDIT (digest: 60c56262c7dfb3747d3fcdd20cd8ae49)
+version = "109.53.02"
 description = "Runtime support for pa_ounit"
 requires = "oUnit"
 archive(byte) = "pa_ounit_lib.cma"
@@ -9,7 +9,7 @@ archive(native) = "pa_ounit_lib.cmxa"
 archive(native, plugin) = "pa_ounit_lib.cmxs"
 exists_if = "pa_ounit_lib.cma"
 package "syntax" (
- version = "109.53.01"
+ version = "109.53.02"
  description = "Syntax extension writing inline tests"
  requires = "camlp4"
  archive(syntax, preprocessor) = "pa_ounit_syntax.cma"
