@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: a7fffb18bc0417a7791f96ec409a0b7d) *)
+(* DO NOT EDIT (digest: 53e3d4dc8da6a202a269193584b264b0) *)
 This is the INSTALL file for the pa_ounit distribution.
 
 This package uses OASIS to generate its build system. See section OASIS for
@@ -24,7 +24,7 @@ Installing
 Uninstalling
 ============
 
-1. Go to the root of the package 
+1. Go to the root of the package
 2. Run 'ocaml setup.ml -uninstall'
 
 OASIS
