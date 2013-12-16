@@ -28,7 +28,8 @@ Library pa_ounit_syntax
   Modules:            Pa_ounit
   FindlibName:        syntax
   FindlibParent:      pa_ounit_lib
-  BuildDepends:       camlp4.lib,
+  BuildDepends:       camlp4.extend,
+                      camlp4.lib,
                       camlp4.quotations
   XMETAType:          syntax
   XMETARequires:      camlp4
