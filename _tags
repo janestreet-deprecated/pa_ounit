@@ -22,4 +22,4 @@
 <syntax/*.ml{,i}>: package(camlp4.lib)
 <syntax/*.ml{,i}>: package(camlp4.quotations)
 # OASIS_STOP
-<syntax/pa_ounit.ml>: syntax_camlp4o,pkg_camlp4.extend
+<syntax/pa_ounit.ml>: syntax_camlp4o
