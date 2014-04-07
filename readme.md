@@ -47,13 +47,8 @@ we run the tests. It is therefore ok to perform side-effects in a `TEST_MODULE`
         TEST = UID.create() <> UID.create()
     end
 
-Building and running the tests at jane street
---------------------------------
-
-Look at `http://docs/programming/omake.html`.
-
-Building and running the tests outside of jane street
-----------------------------------------
+Building and running the tests
+------------------------------
 
 Code using this extension must be compiled and linked using the pa\_ounit\_lib
 library. The pa_ounit syntax extension can take a `-pa-ounit-lib libname` flag (which
@@ -77,6 +72,12 @@ Finally, after running tests, `Pa_ounit_lib.Runtime.summarize ()` should be call
 exit with an error and a summary of the number of failed tests if there were errors or
 exit normally otherwise).
 
+For instance, to execute core tests:
+
+    echo 'Pa_ounit_lib.Runtime.summarize ()' > test.ml
+    ocamlfind ocamlopt -o test -linkall -linkpkg -package core -thread test.ml
+    ./test inline-test-runner core -log -display
+
 Command line arguments
 ----------------------
 The executable that runs tests can take additional command line arguments. The most useful
@@ -98,4 +99,3 @@ of these are:
 
      If no [-only-test] flag is given, all the tests are
      run. Otherwise all the tests matching any of the locations are run.
-
