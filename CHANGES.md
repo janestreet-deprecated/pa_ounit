@@ -50,7 +50,7 @@
 
 - Rewrote `pa_ounit` to simplify execution order and work better with
   functors.
-  
+
     Rewrote `pa_ounit` to solve its shortcomings with functors, namely
     that functors need to be applied with `TEST_MODULE` for their tests
     to be registered.  The order of execution is also much simpler:
