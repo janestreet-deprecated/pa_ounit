@@ -5,6 +5,7 @@
 
 
 let libname = ref None
+let drop_tests = ref false
 let () =
   (* Beware that camlp4 has a broken command line parser and using the flag
      -ounit-ident will not work, because camlp4 will interpret that as
@@ -12,7 +13,9 @@ let () =
      Of course, there is no special case for -o, it is also a problem with any other
      flag. And of course you have no warning whatsoever. *)
   Camlp4.Options.add "-pa-ounit-lib" (Arg.String (fun s -> libname := Some s))
-  "A base name to use for generated identifiers (has to be globally unique in a program)."
+    "A base name to use for generated identifiers\
+     (has to be globally unique in a program).";
+  Camlp4.Options.add "-pa-ounit-drop" (Arg.Set drop_tests) "Drop unit tests"
 
 open Camlp4.PreCast
 
@@ -65,12 +68,16 @@ let descr _loc e_opt id_opt =
    <:expr< $int:string_of_int end_pos$ >>
 
 let apply_to_descr lid _loc e_opt id_opt more_arg =
-  let descr, filename, line, start_pos, end_pos = descr _loc e_opt id_opt in
-  <:str_item<
-    value () =
-      Pa_ounit_lib.Runtime.$lid:lid$ $descr$ $filename$ $line$ $start_pos$ $end_pos$
-        $more_arg$;
-  >>
+  if !drop_tests then
+    <:str_item< >>
+  else begin
+    let descr, filename, line, start_pos, end_pos = descr _loc e_opt id_opt in
+    <:str_item<
+      value () =
+        Pa_ounit_lib.Runtime.$lid:lid$ $descr$ $filename$ $line$ $start_pos$ $end_pos$
+          $more_arg$;
+    >>
+  end
 
 EXTEND Gram
   GLOBAL: Syntax.str_item;
@@ -89,9 +96,12 @@ let () =
   let current_str_parser, _ = Camlp4.Register.current_parser () in
   Camlp4.Register.register_str_item_parser (fun ?directive_handler _loc stream ->
     let ml = current_str_parser ?directive_handler _loc stream in
-    <:str_item<
-      value () = Pa_ounit_lib.Runtime.set_lib $str:libname ()$;
-      $ml$;
-      value () = Pa_ounit_lib.Runtime.unset_lib $str:libname ()$;
-    >>
+    if !drop_tests then
+      ml
+    else
+      <:str_item<
+        value () = Pa_ounit_lib.Runtime.set_lib $str:libname ()$;
+        $ml$;
+        value () = Pa_ounit_lib.Runtime.unset_lib $str:libname ()$;
+      >>
   )

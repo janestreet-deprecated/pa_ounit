@@ -1,3 +1,8 @@
+## 111.28.00
+
+- Added a flag to disable embedding of unit tests/inline benchmarks.
+  (`janestreet/core_kernel#13`)
+
 ## 109.53.00
 
 - Bump version number
