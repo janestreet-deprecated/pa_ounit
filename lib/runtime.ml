@@ -167,7 +167,7 @@ let eprintf_or_delay fmt =
   ) fmt
 
 let test (descr : descr) def_filename def_line_number start_pos end_pos f =
-  let descr = displayed_descr descr def_filename def_line_number start_pos end_pos in
+  let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
   match !action with
   | `Run_lib (lib, l) ->
     let should_run =
@@ -177,6 +177,7 @@ let test (descr : descr) def_filename def_line_number start_pos end_pos f =
       | _ :: _ -> position_match def_filename def_line_number l
       end in
     if should_run then begin
+      let descr = descr () in
       incr tests_ran;
       begin match !log with
       | None -> ()
@@ -202,7 +203,7 @@ let test (descr : descr) def_filename def_line_number start_pos end_pos f =
   | `Ignore -> ()
   | `Collect r ->
     r := OUnit.TestCase (fun () ->
-      if not (f ()) then failwith descr
+      if not (f ()) then failwith (descr ())
     ) :: !r
 
 
@@ -240,7 +241,7 @@ let collect f =
     raise e
 
 let test_module descr def_filename def_line_number start_pos end_pos f =
-  let descr = displayed_descr descr def_filename def_line_number start_pos end_pos in
+  let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
   match !action with
   | `Run_lib (lib, _) ->
     (* run test_modules, in case they define the test we are looking for (if we are
@@ -248,7 +249,7 @@ let test_module descr def_filename def_line_number start_pos end_pos f =
     if Some lib = !dynamic_lib then begin
       incr test_modules_ran;
       try
-        with_descr descr f
+        with_descr (descr ()) f
       with exn ->
         let backtrace = backtrace_indented ~by:2 in
         incr test_modules_failed;
@@ -261,7 +262,7 @@ let test_module descr def_filename def_line_number start_pos end_pos f =
   | `Collect r ->
     r := (
       (* tEST_MODULE are going to be executed inline, unlike before *)
-      OUnit.TestLabel (descr, collect f)
+      OUnit.TestLabel (descr (), collect f)
     ) :: !r
 
 let summarize () =

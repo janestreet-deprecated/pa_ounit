@@ -1,3 +1,7 @@
+## 112.17.00
+
+- only spend time to format test description when tests are run
+
 ## 111.28.00
 
 - Added a flag to disable embedding of unit tests/inline benchmarks.
