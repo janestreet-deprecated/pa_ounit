@@ -1,3 +1,8 @@
+## 112.24.00
+
+- Added `-verbose` switch to time unit tests, so we can easily see which ones
+  are taking a long time.
+
 ## 112.17.00
 
 - only spend time to format test description when tests are run

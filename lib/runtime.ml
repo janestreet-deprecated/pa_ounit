@@ -31,6 +31,8 @@ let stop_on_error = ref false
 
 let log = ref None
 
+let time_sec = ref 0.
+
 let displayed_descr descr filename line start_pos end_pos =
   Printf.sprintf "File %S, line %d, characters %d-%d%s"
     filename line start_pos end_pos descr
@@ -111,11 +113,22 @@ let () =
   | _ ->
     ()
 
+let time f =
+  let before_sec = Sys.time () in
+  let res =
+    try f ()
+    with e ->
+      time_sec := Sys.time () -. before_sec;
+      raise e
+  in
+  time_sec := Sys.time () -. before_sec;
+  res
+
 let with_descr (descr : descr) f =
   let prev = !module_descr in
   module_descr := descr :: prev;
   try
-    f ();
+    time f;
     module_descr := prev;
   with e ->
     module_descr := prev;
@@ -184,15 +197,22 @@ let test (descr : descr) def_filename def_line_number start_pos end_pos f =
       | Some ch -> Printf.fprintf ch "%s\n%s" descr (string_of_module_descr ())
       end;
       if !verbose then begin
-        Printf.printf "%s\n%!" descr
+        Printf.printf "%s%!" descr
       end;
+      let print_time_taken () =
+        (* If !list_test_names, this is is a harmless zero. *)
+        if !verbose then Printf.printf " (%.3f sec)\n%!" !time_sec;
+      in
       try
-        if not !list_test_names && not (f ()) then begin
+        let failed = not !list_test_names && not (time f) in
+        print_time_taken ();
+        if failed then begin
           incr tests_failed;
           eprintf_or_delay "%s is false.\n%s\n%!" descr
             (string_of_module_descr ())
         end
       with exn ->
+        print_time_taken ();
         let backtrace = backtrace_indented ~by:2 in
         incr tests_failed;
         let exn_str = Printexc.to_string exn in
@@ -203,7 +223,7 @@ let test (descr : descr) def_filename def_line_number start_pos end_pos f =
   | `Ignore -> ()
   | `Collect r ->
     r := OUnit.TestCase (fun () ->
-      if not (f ()) then failwith (descr ())
+      if not (time f) then failwith (descr ())
     ) :: !r
 
 
@@ -225,14 +245,14 @@ let unset_lib static_lib =
     if lib = static_lib then dynamic_lib := None
 
 let test_unit descr def_filename def_line_number start_pos end_pos f =
-  test descr def_filename def_line_number start_pos end_pos (fun () -> f (); true)
+  test descr def_filename def_line_number start_pos end_pos (fun () -> time f; true)
 
 let collect f =
   let prev_action = !action in
   let tests = ref [] in
   action := `Collect tests;
   try
-    f ();
+    time f;
     let tests = List.rev !tests in
     action := prev_action;
     OUnit.TestList tests
