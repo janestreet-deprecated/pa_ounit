@@ -16,7 +16,7 @@ XStdFilesREADME:  false
 BuildTools:       ocamlbuild, camlp4o
 
 Library pa_ounit_lib
-  Path:               lib
+  Path:               runtime-lib
   FindlibName:        pa_ounit
   Pack:               true
   Modules:            Runtime
@@ -24,7 +24,7 @@ Library pa_ounit_lib
   XMETADescription:   Runtime support for pa_ounit
 
 Library pa_ounit_syntax
-  Path:               syntax
+  Path:               src
   Modules:            Pa_ounit
   FindlibName:        syntax
   FindlibParent:      pa_ounit_lib
