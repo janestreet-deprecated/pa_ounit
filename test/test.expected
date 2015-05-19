@@ -1,32 +1,34 @@
-File "pa_ounit_test.ml", line 1, characters 0-12: <<false>> is false.
+File "failures.ml", line 6, characters 6-18: <<false>> is false.
 
-File "pa_ounit_test.ml", line 2, characters 0-17: <<raise Exit>> threw Pervasives.Exit.
-  Raised at file "pa_ounit_test.ml", line 2, characters 13-17
+File "failures.ml", line 7, characters 6-23: <<raise Exit>> threw Pervasives.Exit.
+  Raised at file "failures.ml", line 7, characters 19-23
   Called from file "runtime.ml", line XXX, characters XXX-XXX
   Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
 
-File "pa_ounit_test.ml", line 4, characters 2-14: <<false>> is false.
-  in TEST_MODULE at file "pa_ounit_test.ml", line 3, characters 0-134: name
+File "failures.ml", line 9, characters 8-20: <<false>> is false.
+  in TEST_MODULE at file "failures.ml", line 8, characters 6-182: name
 
-File "pa_ounit_test.ml", line 5, characters 2-14: <<false>> is false.
-  in TEST_MODULE at file "pa_ounit_test.ml", line 3, characters 0-134: name
+File "failures.ml", line 10, characters 8-20: <<false>> is false.
+  in TEST_MODULE at file "failures.ml", line 8, characters 6-182: name
 
-File "pa_ounit_test.ml", line 6, characters 2-19: <<raise Exit>> threw Pervasives.Exit.
-  Raised at file "pa_ounit_test.ml", line 6, characters 15-19
+File "failures.ml", line 11, characters 8-25: <<raise Exit>> threw Pervasives.Exit.
+  Raised at file "failures.ml", line 11, characters 21-25
   Called from file "runtime.ml", line XXX, characters XXX-XXX
   Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
-  in TEST_MODULE at file "pa_ounit_test.ml", line 3, characters 0-134: name
+  in TEST_MODULE at file "failures.ml", line 8, characters 6-182: name
 
 TEST_MODULE threw Pervasives.Exit.
-  Raised at file "pa_ounit_test.ml", line 8, characters 19-23
+  Raised at file "failures.ml", line 13, characters 25-29
   Called from file "runtime.ml", line XXX, characters XXX-XXX
   Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
   Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
-  in TEST_MODULE at file "pa_ounit_test.ml", line 3, characters 0-134: name
+  in TEST_MODULE at file "failures.ml", line 8, characters 6-182: name
 
 TEST_MODULE threw Pervasives.Exit.
-  Raised at file "pa_ounit_test.ml", line 12, characters 17-21
+  Raised at file "failures.ml", line 17, characters 23-27
   Called from file "runtime.ml", line XXX, characters XXX-XXX
   Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
   Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
 
+FAILED 5 / 11 tests, 2 TEST_MODULES
+code: 2

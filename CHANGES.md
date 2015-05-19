@@ -1,3 +1,9 @@
+## 112.35.00
+
+- Made `Pa_ounit_runtime` not depend on `OUnit` anymore.
+
+    The dependency hasn't been needed in more than 2 years.
+
 ## 112.24.00
 
 - Added `-verbose` switch to time unit tests, so we can easily see which ones

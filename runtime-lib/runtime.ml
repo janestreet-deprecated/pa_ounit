@@ -19,7 +19,7 @@ type end_pos = int
 let action : [
 | `Ignore
 | `Run_lib of string * (filename * line_number option * bool ref) list
-| `Collect of OUnit.test list ref
+| `Collect of (unit -> unit) list ref
 ] ref = ref `Ignore
 let module_descr = ref []
 let verbose = ref false
@@ -222,9 +222,7 @@ let test (descr : descr) def_filename def_line_number start_pos end_pos f =
     end
   | `Ignore -> ()
   | `Collect r ->
-    r := OUnit.TestCase (fun () ->
-      if not (time f) then failwith (descr ())
-    ) :: !r
+    r := (fun () -> if not (time f) then failwith (descr ())) :: !r
 
 
 let set_lib static_lib =
@@ -255,7 +253,7 @@ let collect f =
     time f;
     let tests = List.rev !tests in
     action := prev_action;
-    OUnit.TestList tests
+    tests
   with e ->
     action := prev_action;
     raise e
@@ -280,10 +278,8 @@ let test_module descr def_filename def_line_number start_pos end_pos f =
     end
   | `Ignore -> ()
   | `Collect r ->
-    r := (
-      (* tEST_MODULE are going to be executed inline, unlike before *)
-      OUnit.TestLabel (descr (), collect f)
-    ) :: !r
+    (* tEST_MODULE are going to be executed inline, unlike before *)
+    r := List.rev_append (collect f) !r
 
 let summarize () =
   begin match !action with

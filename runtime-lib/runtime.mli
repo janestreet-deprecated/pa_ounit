@@ -11,4 +11,4 @@ val test_module : descr -> filename -> line_number -> start_pos -> end_pos -> (u
 val summarize : unit -> unit
 
 (* this function is meant to be called by hand, it should be in an other module *)
-val collect : (unit -> unit) -> OUnit.test
+val collect : (unit -> unit) -> (unit -> unit) list
