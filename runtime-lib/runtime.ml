@@ -33,6 +33,38 @@ let log = ref None
 
 let time_sec = ref 0.
 
+type text_style = [ `red | `green | `yellow ]
+
+let colorise (c: text_style) s =
+    let code = match c with
+      | `red       -> "31"
+      | `green     -> "32"
+      | `yellow    -> "33"
+    in
+    Printf.sprintf "\027[%sm%s\027[m" code s
+
+let acolor_with_width width c oc s =
+  let str = colorise c s in
+  output_string oc str;
+  match width with
+  | None   -> ()
+  | Some w ->
+    if String.length str >= w then ()
+    else output_string oc (String.make (w-String.length str) ' ')
+
+let acolor c oc s = acolor_with_width None c oc s
+
+let print_color color fmt =
+  Printf.ksprintf (fun str ->
+  flush stdout;
+  Printf.eprintf "%a %!" (acolor color) str) fmt
+
+let error_print = fun str -> print_color `red str
+let success_print = fun str -> print_color `green str
+let warning_print = fun str -> print_color `yellow str
+
+let error_str fmt =
+  Printf.ksprintf (fun str -> (colorise `red) str) fmt
 let displayed_descr descr filename line start_pos end_pos =
   Printf.sprintf "File %S, line %d, characters %d-%d%s"
     filename line start_pos end_pos descr
@@ -164,15 +196,15 @@ let print_delayed_errors () =
   match List.rev !delayed_errors with
   | [] -> ()
   | _ :: _ as delayed_errors ->
-    Printf.eprintf "\n%s\n%!" (String.make 70 '=');
+    error_print "\n%s\n%!" (String.make 70 '=');
     List.iter (fun message ->
-      Printf.eprintf "%s%!" message
+      error_print "%s%!" message
     ) delayed_errors
 
 let eprintf_or_delay fmt =
   Printf.ksprintf (fun s ->
     if !verbose then delayed_errors := s :: !delayed_errors
-    else Printf.eprintf "%s%!" s;
+    else error_print "%s%!" s;
     if !stop_on_error then begin
       print_delayed_errors ();
       exit 2
@@ -332,12 +364,13 @@ let summarize () =
       exit 1
     | None ->
       if !tests_ran = 0 && !strict then begin
-        Printf.eprintf "Pa_ounit error: no tests have been run.\n%!";
+        warning_print "Pa_ounit error: no tests have been run.\n%!";
         exit 1
-      end;
+      end else
+        success_print "Done, without errors.\n";
       exit 0
   end
   | count, count_test_modules ->
-    Printf.eprintf "FAILED %d / %d tests%s\n%!" count !tests_ran
+    error_print "FAILED %d / %d tests%s\n%!" count !tests_ran
       (if count_test_modules = 0 then "" else Printf.sprintf (", %d TES" ^^ "T_MODULES") count_test_modules);
     exit 2
