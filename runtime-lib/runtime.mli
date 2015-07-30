@@ -10,5 +10,6 @@ val test_unit : descr -> filename -> line_number -> start_pos -> end_pos -> (uni
 val test_module : descr -> filename -> line_number -> start_pos -> end_pos -> (unit -> unit) -> unit
 val summarize : unit -> unit
 
-(* this function is meant to be called by hand, it should be in an other module *)
+(* These functions are meant to be called by hand, they should be in an other module. *)
 val collect : (unit -> unit) -> (unit -> unit) list
+val testing : bool

@@ -1,3 +1,7 @@
+## 113.00.00
+
+- Add `-pa-ounit-drop-with-deadcode` option
+
 ## 112.35.00
 
 - Made `Pa_ounit_runtime` not depend on `OUnit` anymore.

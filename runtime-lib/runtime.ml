@@ -113,6 +113,12 @@ let () =
   | _ ->
     ()
 
+let testing =
+  match !action with
+  | `Run_lib _ -> true
+  | `Ignore -> false
+  | `Collect _ -> assert false
+
 let time f =
   let before_sec = Sys.time () in
   let res =
